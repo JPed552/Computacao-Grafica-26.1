@@ -174,7 +174,7 @@ class App:
                  bg="#2b2b2b", fg="white").pack(pady=(6, 4))
 
         # ---- Poligono ----
-        frame_poly = _lframe(esq, "Poligono Regular (centrado na origem)")
+        frame_poly = _lframe(esq, "Poligono Regular")
         frame_poly.pack(padx=8, pady=4, fill="x")
 
         self.ent_t = {}
@@ -189,6 +189,18 @@ class App:
         e_raio = _entry(frame_poly, "100")
         e_raio.grid(row=0, column=3, padx=6, pady=6)
         self.ent_t["raio"] = e_raio
+
+        self.posicao_poly = tk.StringVar(value="origem")
+        tk.Radiobutton(frame_poly, text="Centrado na origem",
+                       variable=self.posicao_poly, value="origem",
+                       bg="#2b2b2b", fg="white", selectcolor="#444",
+                       activebackground="#2b2b2b", activeforeground="white",
+                       ).grid(row=1, column=0, columnspan=2, padx=6, pady=2, sticky="w")
+        tk.Radiobutton(frame_poly, text="1o quadrante (canto na origem)",
+                       variable=self.posicao_poly, value="quadrante",
+                       bg="#2b2b2b", fg="white", selectcolor="#444",
+                       activebackground="#2b2b2b", activeforeground="white",
+                       ).grid(row=1, column=2, columnspan=2, padx=6, pady=2, sticky="w")
 
         # ---- Tipo de transformacao ----
         frame_tipo = _lframe(esq, "Tipo de Transformacao")
@@ -223,32 +235,12 @@ class App:
         self._build_param_cisalhamento()
         self._on_tipo_changed()  # exibe frame inicial
 
-        # ---- Display da matriz 3x3 ----
-        frame_mat = _lframe(esq, "Matriz de Transformacao  M · [x  y  1]ᵀ")
-        frame_mat.pack(padx=8, pady=4, fill="x")
-
-        for j, hdr in enumerate(["   x", "   y", "   w"]):
-            tk.Label(frame_mat, text=hdr, bg="#2b2b2b", fg="#555",
-                     font=("Consolas", 8)).grid(row=0, column=j+1, padx=2)
-
-        self._mat_cells = []
-        for i, row_hdr in enumerate(["x'", "y'", "w'"]):
-            tk.Label(frame_mat, text=row_hdr, bg="#2b2b2b", fg="#555",
-                     font=("Consolas", 8)).grid(row=i+1, column=0, padx=6)
-            row_cells = []
-            for j in range(3):
-                lbl = tk.Label(frame_mat, text="0.000", width=7,
-                               bg="#1a1a1a", fg="#4fc3f7",
-                               font=("Consolas", 9), relief="flat", bd=2)
-                lbl.grid(row=i+1, column=j+1, padx=3, pady=3)
-                row_cells.append(lbl)
-            self._mat_cells.append(row_cells)
-
-        self._update_matrix_display(identidade())
-
         # ---- Botoes ----
         frame_btn = tk.Frame(esq, bg="#2b2b2b")
         frame_btn.pack(pady=8)
+        tk.Button(frame_btn, text="Original",
+                  command=self._draw_original,
+                  width=10, bg="#2196F3", fg="white", **_BTN).pack(side="left", padx=3)
         tk.Button(frame_btn, text="Aplicar",
                   command=self._apply_transform,
                   width=10, bg="#4CAF50", fg="white", **_BTN).pack(side="left", padx=3)
@@ -349,11 +341,6 @@ class App:
         self.canvas_t.create_rectangle(px, py, px+1, py+1,
                                        outline=cor, fill=cor)
 
-    def _update_matrix_display(self, M):
-        for i in range(3):
-            for j in range(3):
-                self._mat_cells[i][j].config(text=f"{M[i][j]:.3f}")
-
     # ---- Leitura de parametros ----
 
     def _get_poly_vertices(self):
@@ -367,7 +354,12 @@ class App:
         except ValueError as exc:
             messagebox.showerror("Erro", str(exc))
             return None
-        return poligono_regular(n, r)
+        verts = poligono_regular(n, r)
+        if self.posicao_poly.get() == "quadrante":
+            min_x = min(x for x, y in verts)
+            min_y = min(y for x, y in verts)
+            verts = [(x - min_x, y - min_y) for x, y in verts]
+        return verts
 
     def _build_transform_matrix(self):
         """Constroi a matriz 3x3 conforme o tipo selecionado."""
@@ -410,6 +402,18 @@ class App:
         self.log_t.insert("end", msg + "\n")
         self.log_t.see("end")
 
+    def _draw_original(self):
+        verts = self._get_poly_vertices()
+        if verts is None:
+            return
+        self.canvas_t.delete("all")
+        self._draw_axes(self.canvas_t)
+        self._draw_polygon_t(verts, "#2196F3")
+        self.log_t.delete("1.0", "end")
+        self._log_t("=== Poligono original ===")
+        for i, (x, y) in enumerate(verts):
+            self._log_t(f"  V{i+1} = ({x:7.2f}, {y:7.2f}, 1)")
+
     def _apply_transform(self):
         verts = self._get_poly_vertices()
         if verts is None:
@@ -421,7 +425,6 @@ class App:
         self.canvas_t.delete("all")
         self._draw_axes(self.canvas_t)
         self._draw_polygon_t(verts_t, "#2196F3")
-        self._update_matrix_display(M)
         self.log_t.delete("1.0", "end")
         self._log_t(f"=== {self.transf_tipo.get().capitalize()} ===")
         self._log_t("--- Vertices transformados ---")
@@ -432,7 +435,6 @@ class App:
         self.canvas_t.delete("all")
         self._draw_axes(self.canvas_t)
         self.log_t.delete("1.0", "end")
-        self._update_matrix_display(identidade())
 
 
 # ---------------------------------------------------------------------------
