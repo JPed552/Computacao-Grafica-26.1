@@ -184,23 +184,12 @@ class App:
         e_lados.grid(row=0, column=1, padx=6, pady=6)
         self.ent_t["lados"] = e_lados
 
-        tk.Label(frame_poly, text="Raio:", **_LBL).grid(
+        tk.Label(frame_poly, text="Tamanho:", **_LBL).grid(
             row=0, column=2, padx=6, pady=6, sticky="e")
         e_raio = _entry(frame_poly, "100")
         e_raio.grid(row=0, column=3, padx=6, pady=6)
         self.ent_t["raio"] = e_raio
 
-        self.posicao_poly = tk.StringVar(value="origem")
-        tk.Radiobutton(frame_poly, text="Centrado na origem",
-                       variable=self.posicao_poly, value="origem",
-                       bg="#2b2b2b", fg="white", selectcolor="#444",
-                       activebackground="#2b2b2b", activeforeground="white",
-                       ).grid(row=1, column=0, columnspan=2, padx=6, pady=2, sticky="w")
-        tk.Radiobutton(frame_poly, text="1o quadrante (canto na origem)",
-                       variable=self.posicao_poly, value="quadrante",
-                       bg="#2b2b2b", fg="white", selectcolor="#444",
-                       activebackground="#2b2b2b", activeforeground="white",
-                       ).grid(row=1, column=2, columnspan=2, padx=6, pady=2, sticky="w")
 
         # ---- Tipo de transformacao ----
         frame_tipo = _lframe(esq, "Tipo de Transformacao")
@@ -355,11 +344,9 @@ class App:
             messagebox.showerror("Erro", str(exc))
             return None
         verts = poligono_regular(n, r)
-        if self.posicao_poly.get() == "quadrante":
-            min_x = min(x for x, y in verts)
-            min_y = min(y for x, y in verts)
-            verts = [(x - min_x, y - min_y) for x, y in verts]
-        return verts
+        min_x = min(x for x, y in verts)
+        min_y = min(y for x, y in verts)
+        return [(x - min_x, y - min_y) for x, y in verts]
 
     def _build_transform_matrix(self):
         """Constroi a matriz 3x3 conforme o tipo selecionado."""
